@@ -1,0 +1,38 @@
+From ea10a33d26572eebde59565179f622b6fb240d04 Mon Sep 17 00:00:00 2001
+From: Patrick Uiterwijk <patrick@puiterwijk.org>
+Date: Wed, 6 Jan 2021 10:43:34 +0100
+Subject: [PATCH] Fix sign_hash not observing the hashalgo argument
+
+This fixes sign_hash not using the correct algorithm for creating the
+signature, by ensuring it uses the passed in variable value.
+
+Signed-off-by: Patrick Uiterwijk <patrick@puiterwijk.org>
+---
+ src/libimaevm.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/libimaevm.c b/src/libimaevm.c
+index fa6c27858d0f..72d5e67f6fdd 100644
+--- a/src/libimaevm.c
++++ b/src/libimaevm.c
+@@ -916,7 +916,7 @@ static int sign_hash_v2(const char *algo, const unsigned char *hash,
+ 		return -1;
+ 	}
+ 
+-	log_info("hash(%s): ", imaevm_params.hash_algo);
++	log_info("hash(%s): ", algo);
+ 	log_dump(hash, size);
+ 
+ 	pkey = read_priv_pkey(keyfile, imaevm_params.keypass);
+@@ -942,7 +942,7 @@ static int sign_hash_v2(const char *algo, const unsigned char *hash,
+ 	if (!EVP_PKEY_sign_init(ctx))
+ 		goto err;
+ 	st = "EVP_get_digestbyname";
+-	if (!(md = EVP_get_digestbyname(imaevm_params.hash_algo)))
++	if (!(md = EVP_get_digestbyname(algo)))
+ 		goto err;
+ 	st = "EVP_PKEY_CTX_set_signature_md";
+ 	if (!EVP_PKEY_CTX_set_signature_md(ctx, md))
+-- 
+2.29.2
+

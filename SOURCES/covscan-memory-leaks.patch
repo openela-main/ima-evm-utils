@@ -1,0 +1,45 @@
+diff --git a/src/evmctl.c b/src/evmctl.c
+index 2ffee78..b80a1c9 100644
+--- a/src/evmctl.c
++++ b/src/evmctl.c
+@@ -1716,7 +1716,7 @@ static char *get_password(void)
+ 
+ 	if (tcsetattr(fileno(stdin), TCSANOW, &tmp_flags) != 0) {
+ 		perror("tcsetattr");
+-		return NULL;
++		goto get_pwd_err;
+ 	}
+ 
+ 	printf("PEM password: ");
+@@ -1725,10 +1725,14 @@ static char *get_password(void)
+ 	/* restore terminal */
+ 	if (tcsetattr(fileno(stdin), TCSANOW, &flags) != 0) {
+ 		perror("tcsetattr");
+-		return NULL;
++		goto get_pwd_err;
+ 	}
+ 
++	free(password);
+ 	return pwd;
++get_pwd_err:
++	free(password);
++	return NULL;
+ }
+ 
+ int main(int argc, char *argv[])
+diff --git a/src/libimaevm.c b/src/libimaevm.c
+index 6fa0ed4..39582f2 100644
+--- a/src/libimaevm.c
++++ b/src/libimaevm.c
+@@ -466,6 +466,8 @@ void init_public_keys(const char *keyfiles)
+ 		entry->next = public_keys;
+ 		public_keys = entry;
+ 	}
++
++	free(tmp_keyfiles);
+ }
+ 
+ int verify_hash_v2(const char *file, const unsigned char *hash, int size,
+-- 
+2.14.4
+
