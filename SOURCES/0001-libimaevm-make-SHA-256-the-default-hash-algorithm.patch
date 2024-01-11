@@ -1,0 +1,61 @@
+From 916a0f97fd244a48fde429a63ddc04ed1ed94f8b Mon Sep 17 00:00:00 2001
+From: Bruno Meneguele <bmeneg@redhat.com>
+Date: Mon, 16 Aug 2021 17:58:35 -0300
+Subject: [PATCH] libimaevm: make SHA-256 the default hash algorithm
+
+The SHA-1 algorithm is considered a weak hash algorithm and there has been
+some movement within certain distros to drop its support completely or at
+least drop it from the default behavior. ima-evm-utils uses it as the
+default algorithm in case the user doesn't explicitly ask for another
+through the --hashalgo/-a option. With that, make SHA-256 the default hash
+algorithm instead.
+
+Signed-off-by: Bruno Meneguele <bmeneg@redhat.com>
+---
+ README          | 2 +-
+ src/evmctl.c    | 2 +-
+ src/libimaevm.c | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/README b/README
+index 87cd3b5cd7da..0dc02f551673 100644
+--- a/README
++++ b/README
+@@ -41,7 +41,7 @@ COMMANDS
+ OPTIONS
+ -------
+ 
+-  -a, --hashalgo     sha1 (default), sha224, sha256, sha384, sha512
++  -a, --hashalgo     sha1, sha224, sha256 (default), sha384, sha512
+   -s, --imasig       make IMA signature
+   -d, --imahash      make IMA hash
+   -f, --sigfile      store IMA signature in .sig file instead of xattr
+diff --git a/src/evmctl.c b/src/evmctl.c
+index a8065bbe124a..e0e55bc0b122 100644
+--- a/src/evmctl.c
++++ b/src/evmctl.c
+@@ -2496,7 +2496,7 @@ static void usage(void)
+ 
+ 	printf(
+ 		"\n"
+-		"  -a, --hashalgo     sha1 (default), sha224, sha256, sha384, sha512, streebog256, streebog512\n"
++		"  -a, --hashalgo     sha1, sha224, sha256 (default), sha384, sha512, streebog256, streebog512\n"
+ 		"  -s, --imasig       make IMA signature\n"
+ 		"  -d, --imahash      make IMA hash\n"
+ 		"  -f, --sigfile      store IMA signature in .sig file instead of xattr\n"
+diff --git a/src/libimaevm.c b/src/libimaevm.c
+index 8e9615796153..f6c72b878d88 100644
+--- a/src/libimaevm.c
++++ b/src/libimaevm.c
+@@ -88,7 +88,7 @@ static const char *const pkey_hash_algo_kern[PKEY_HASH__LAST] = {
+ struct libimaevm_params imaevm_params = {
+ 	.verbose = LOG_INFO,
+ 	.x509 = 1,
+-	.hash_algo = "sha1",
++	.hash_algo = "sha256",
+ };
+ 
+ static void __attribute__ ((constructor)) libinit(void);
+-- 
+2.31.1
+
