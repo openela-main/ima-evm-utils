@@ -1,31 +1,34 @@
-%bcond_with compat
+# If the soname gets bumped we need to ship a compat library to be able
+# to bootstrap and rebuild rpm else we end up with chicken and egg problem.
+%global bootstrap 0
 
-# For cases where the soname requires a bump we need to define with_compat,
-# update the package into the side-tag, update RPM (rpm-sign) into side-tag,
-# _then_ undefine with_compat and rebuild the package into the side-tag. This
-# is required to workaround the chiken-egg situation with the rpm-sign update.
-# The compat pkg must not make the compose, it's only a buildrequirement for
-# rpm-sign in a soname bump.
-%if ! %{with compat}
-%undefine with_compat
-%endif
-
-%if %{with compat}
-%global compat_soversion 2
+%if 0%{bootstrap}
+%global compat_soversion 3
 %endif
 
 Name:    ima-evm-utils
-Version: 1.4
-Release: 4%{?dist}
+Version: 1.5
+Release: 2%{?dist}
 Summary: IMA/EVM support utilities
 License: GPLv2
 Url:     http://linux-ima.sourceforge.net/
-Source:  http://sourceforge.net/projects/linux-ima/files/ima-evm-utils/%{name}-%{version}.tar.gz
+Source0:  https://github.com/mimizohar/ima-evm-utils/releases/download/v%{version}/%{name}-%{version}.tar.gz
 
+# IMA setup tools
+Source2: dracut-98-integrity.conf
+Source3: ima-add-sigs.sh
+Source4: ima-setup.sh
+Source100: policy-01-appraise-exectuables-and-lib-signatures
+Source101: policy-02-keylime-remote-attestation
+Source200: policy_list
+Source300: redhatimarelease-9.der
+Source301: centosimarelease-9.der
+
+
+%if 0%{bootstrap}
 # compat source and patches
-Source10: ima-evm-utils-1.3.2.tar.gz
-Patch10:  0001-evmctl-fix-memory-leak-in-get_password.patch
-Patch11:  0001-libimaevm-make-SHA-256-the-default-hash-algorithm.patch
+Source10: ima-evm-utils-1.4.tar.gz
+%endif
 
 BuildRequires: asciidoc
 BuildRequires: autoconf
@@ -37,6 +40,8 @@ BuildRequires: libxslt
 BuildRequires: make
 BuildRequires: openssl-devel
 BuildRequires: tpm2-tss-devel
+Requires: keyutils
+Requires: attr
 
 %description
 The Trusted Computing Group(TCG) run-time Integrity Measurement Architecture
@@ -53,23 +58,14 @@ Requires: %{name} = %{version}-%{release}
 %description devel
 This package provides the header files for %{name}
 
-%if %{with compat}
-%package -n %{name}%{compat_soversion}
-Summary: Compatibility package of %{name}
-
-%description -n %{name}%{compat_soversion}
-This package provides the libimaevm.so.%{compat_soversion} relative to %{name}-1.3
-%endif
-
 %prep
 %setup -q
 
-%if %{with compat}
+%if 0%{bootstrap}
 mkdir compat/
-tar -zxf %{SOURCE10} --strip-components=1 -C compat/
-cd compat/
-%patch10 -p1
-%patch11 -p1
+pushd compat/
+tar -zxf %{SOURCE10} --strip-components=1
+popd
 %endif
 
 %build
@@ -77,10 +73,10 @@ autoreconf -vif
 %configure --disable-static
 %make_build
 
-%if %{with compat}
+%if 0%{bootstrap}
 pushd compat/
 autoreconf -vif
-%configure --disable-static
+%configure --disable-static --disable-engine
 %make_build
 popd
 %endif
@@ -89,7 +85,7 @@ popd
 %make_install
 find %{buildroot} -type f -name "*.la" -print -delete
 
-%if %{with compat}
+%if 0%{bootstrap}
 pushd compat/src/.libs/
 install -p libimaevm.so.%{compat_soversion}.0.0 %{buildroot}%{_libdir}/libimaevm.so.%{compat_soversion}.0.0
 ln -s -f %{buildroot}%{_libdir}/libimaevm.so.%{compat_soversion}.0.0 %{buildroot}%{_libdir}/libimaevm.so.%{compat_soversion}
@@ -98,26 +94,59 @@ popd
 
 %ldconfig_scriptlets
 
+# IMA setup tools
+install -D -m 644 %{SOURCE2} $RPM_BUILD_ROOT%{_datadir}/ima/dracut-98-integrity.conf
+
+mkdir -p -m 755 $RPM_BUILD_ROOT%{_datadir}/ima/policies
+while IFS= read -r policy_file
+do
+  install -m 644 %{_sourcedir}/policy-"$policy_file" $RPM_BUILD_ROOT%{_datadir}/ima/policies/"$policy_file"
+done < %{SOURCE200}
+
+install -D %{SOURCE3} $RPM_BUILD_ROOT%{_bindir}/ima-add-sigs
+install -D %{SOURCE4} $RPM_BUILD_ROOT%{_bindir}/ima-setup
+
+# IMA code-signing certs
+install -d -m 755 $RPM_BUILD_ROOT/etc/keys/ima
+install -m 644 %{SOURCE300} %{SOURCE301} $RPM_BUILD_ROOT/etc/keys/ima/
+
 %files
 %license COPYING
 %doc NEWS README AUTHORS
 %{_bindir}/evmctl
-# if you need to bump the soname version, coordinate with dependent packages
-%{_libdir}/libimaevm.so.3*
 %{_mandir}/man1/evmctl*
+
+# IMA setup tools
+%{_datadir}/ima/policies
+%{_datadir}/ima/dracut-98-integrity.conf
+%{_bindir}/ima-add-sigs
+%{_bindir}/ima-setup
+
+# if you need to bump the soname version, coordinate with dependent packages
+%{_libdir}/libimaevm.so.4*
+%if 0%{bootstrap}
+%{_libdir}/libimaevm.so.%{compat_soversion}
+%{_libdir}/libimaevm.so.%{compat_soversion}.0.0
+%endif
+
+# IMA code-signing certs
+/etc/keys/ima/*.der
 
 %files devel
 %{_pkgdocdir}/*.sh
 %{_includedir}/imaevm.h
 %{_libdir}/libimaevm.so
 
-%if %{with compat}
-%files -n %{name}%{compat_soversion}
-%{_libdir}/libimaevm.so.%{compat_soversion}
-%{_libdir}/libimaevm.so.%{compat_soversion}.0.0
-%endif
-
 %changelog
+* Fri Jun 07 2024 Coiby Xu <coxu@redhat.com> - 1.5-2
+- add some IMA setup tools (RHEL-33751)
+
+* Tue Jun 04 2024 Coiby Xu <coxu@redhat.com> - 1.5-1
+- Disable compat build (RHEL-2969)
+
+* Fri Apr 12 2024 Coiby Xu <coxu@redhat.com> - 1.5-0.1
+- Update to upstream 1.5 (RHEL-2969)
+
 * Mon Dec 13 2021 Bruno Meneguele <bmeneg@redhat.com> - 1.4-4
 - Fix compat bcond_with value check.
 

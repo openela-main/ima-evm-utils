@@ -1,0 +1,2 @@
+appraise func=MMAP_CHECK mask=MAY_EXEC appraise_type=imasig
+appraise func=BPRM_CHECK appraise_type=imasig
