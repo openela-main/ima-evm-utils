@@ -17,8 +17,12 @@ usage: $0 --policy=IMA_POLICY_PATH [--reinstall_threshold=NUM]
        /usr/share/ima/policies or you can use your own IMA policy
 
        --reinstall_threshold
-       When there are >reinstall_threshold packages in the RPM DB missing IMA signatures, reinstalling the packages to add IMA signatures to the packages.
-       By default, IMA sigatures will be obtained from the RPM DB. However the RPM DB may not have the signatures. Dectect this case by checking if there are >reinstall_threshold package missing IMA signatures.
+       When there are >reinstall_threshold packages in the RPM DB missing IMA
+       signatures, reinstalling the packages to add IMA signatures to the
+       packages.  By default, IMA sigatures will be obtained from the RPM DB.
+       However the RPM DB may not have the signatures. Dectect this case by
+       checking if there are >reinstall_threshold package missing IMA
+       signatures.
 
 EOF
 	exit 1

@@ -8,7 +8,7 @@
 
 Name:    ima-evm-utils
 Version: 1.5
-Release: 2%{?dist}
+Release: 3%{?dist}
 Summary: IMA/EVM support utilities
 License: GPLv2
 Url:     http://linux-ima.sourceforge.net/
@@ -18,7 +18,7 @@ Source0:  https://github.com/mimizohar/ima-evm-utils/releases/download/v%{versio
 Source2: dracut-98-integrity.conf
 Source3: ima-add-sigs.sh
 Source4: ima-setup.sh
-Source100: policy-01-appraise-exectuables-and-lib-signatures
+Source100: policy-01-appraise-executable-and-lib-signatures
 Source101: policy-02-keylime-remote-attestation
 Source200: policy_list
 Source300: redhatimarelease-9.der
@@ -138,6 +138,9 @@ install -m 644 %{SOURCE300} %{SOURCE301} $RPM_BUILD_ROOT/etc/keys/ima/
 %{_libdir}/libimaevm.so
 
 %changelog
+* Wed Nov 13 2024 Coiby Xu <coxu@redhat.com> - 1.5-3
+- Skip unsupported file systems for sample appraisal rule (RHEL-62817)
+
 * Fri Jun 07 2024 Coiby Xu <coxu@redhat.com> - 1.5-2
 - add some IMA setup tools (RHEL-33751)
 

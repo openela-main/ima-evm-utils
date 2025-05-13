@@ -1,16 +1,31 @@
 #!/bin/bash
 #
 # This script add IMA signatures to installed RPM package files
-# Usage: add_ima_sigs.sh [--package=PACKAGE_NAME|ALL] [--ima-cert=IMA_CERT_PATH] [--reinstall_threshold=NUM]
-#
-# By default, it will add IMA sigantures to all installed package files. Or you
-# can provide a package name to only add IMA signature for files of specicifed
-# package.  If it detects >=20 packages (or 1 package if you specify a package
-# name) missing signatures in the RPM database, it will reinstall the packages
-# in order to get the IMA signatures.
-#
-# With the signing IMA cert path specified, it will also try to verify
-# the added IMA signature.
+usage() {
+	echo "Add IMA signatures to installed packages."
+	cat <<EOF
+usage: $0 [--package=PACKAGE_NAME|ALL] [--ima-cert=IMA_CERT_PATH] [--reinstall_threshold=NUM]
+
+       --package
+       By default, it will add IMA sigantures to all installed package files.
+       Or you can provide a package name to only add IMA signature for files of
+       specicifed package.
+
+       --reinstall_threshold
+       When there are >reinstall_threshold (=20 by default) packages in the RPM
+       DB missing IMA signatures, reinstalling the packages to add IMA
+       signatures to the packages.  By default, IMA sigatures will be obtained
+       from the RPM DB. However the RPM DB may not have the signatures. Dectect
+       this case by checking if there are >reinstall_threshold package missing
+       IMA signatures.
+
+       --ima-cert
+       With the signing IMA cert path specified, it will also try to verify the
+       added IMA signature.
+
+EOF
+	exit 1
+}
 
 for _opt in "$@"; do
 	case "$_opt" in
@@ -24,7 +39,7 @@ for _opt in "$@"; do
 		ima_cert=${_opt#*=}
 		;;
 	*)
-		usage
+		[[ -n $1 ]] && usage
 		;;
 	esac
 done
@@ -41,7 +56,7 @@ abort() {
 # Add IMA signatures from RPM database
 add_from_rpm_db() {
 	if ! command -v setfattr &>/dev/null; then
-			abort "Please install attr"
+		abort "Please install attr"
 	fi
 
 	# use "|" as deliminator since it won't be used in a filename or signature
@@ -80,7 +95,7 @@ if [[ -z $reinstall_threshold ]]; then
 	if [[ $package == "--all" ]]; then
 		reinstall_threshold=20
 	else
-		if ! rpm -q --quiet $package; then
+		if ! rpm -q --quiet "$package"; then
 			dnf install "$package" -yq >/dev/null
 			exit 0
 		fi
@@ -88,7 +103,7 @@ if [[ -z $reinstall_threshold ]]; then
 	fi
 fi
 
-unsigned_packages_in_rpm_db=$(rpm -q --queryformat "%{SIGPGP:pgpsig}\n" $package | grep "^(none)$" | wc -l)
+unsigned_packages_in_rpm_db=$(rpm -q --queryformat "%{SIGPGP:pgpsig}\n" "$package" | grep "^(none)$" | wc -l)
 
 if [[ $unsigned_packages_in_rpm_db -ge $reinstall_threshold ]]; then
 	add_by_reinstall
