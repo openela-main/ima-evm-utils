@@ -8,7 +8,7 @@
 
 Name:    ima-evm-utils
 Version: 1.6.2
-Release: 1%{?dist}
+Release: 3%{?dist}
 Summary: IMA/EVM support utilities
 License: GPLv2
 Url:     http://linux-ima.sourceforge.net/
@@ -138,6 +138,12 @@ install -m 644 %{SOURCE300} %{SOURCE301} $RPM_BUILD_ROOT/etc/keys/ima/
 %{_libdir}/libimaevm.so
 
 %changelog
+* Thu Jul 31 2025 Coiby Xu <coxu@redhat.com> - 1.6.2-3
+- Verify IMA signature to make sure it's correct
+
+* Mon Mar 10 2025 Coiby Xu <coxu@redhat.com> - 1.6.2-2
+- ima-setup: run zipl after building initramfs for s390x (RHEL-82392)
+
 * Wed Jan 15 2025 Coiby Xu <coxu@redhat.com> - 1.6.2-1
 - Disable compat lib (RHEL-65376)
 

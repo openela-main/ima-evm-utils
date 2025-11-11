@@ -33,7 +33,7 @@ for _opt in "$@"; do
 	--policy=*)
 		ima_policy_path=${_opt#*=}
 		if [[ ! -e $ima_policy_path ]]; then
-			echo "$policy_file doesn't exist"
+			echo "$ima_policy_path doesn't exist"
 			exit 1
 		fi
 		;;
@@ -61,7 +61,7 @@ if test -f /run/ostree-booted; then
 	echo "You are using OSTree, please enable IMA signatures as part of the OSTree creation process."
 else
 	echo "Adding IMA signatures to installed package files"
-	if ! ima-add-sigs; then
+	if ! ima-add-sigs --reinstall_threshold="$reinstall_threshold"; then
 		echo "Failed to add IMA signatures, abort"
 		exit 1
 	fi
@@ -136,7 +136,7 @@ if ! lsinitrd --mod | grep -q integrity; then
 			dracut -f --kver "$_default_kernel"
 		fi
 	fi
-
+	[[ $(uname -m) == s390x ]] && zipl &> /dev/null
 fi
 
 if ! load_ima_policy "$ima_policy_path"; then
