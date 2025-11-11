@@ -4,7 +4,7 @@
 usage() {
 	echo "Add IMA signatures to installed packages."
 	cat <<EOF
-usage: $0 [--package=PACKAGE_NAME|ALL] [--ima-cert=IMA_CERT_PATH] [--reinstall_threshold=NUM]
+usage: $0 [--package=PACKAGE_NAME|ALL] [--ima_cert=IMA_CERT_PATH] [--reinstall_threshold=NUM]
 
        --package
        By default, it will add IMA sigantures to all installed package files.
@@ -19,7 +19,7 @@ usage: $0 [--package=PACKAGE_NAME|ALL] [--ima-cert=IMA_CERT_PATH] [--reinstall_t
        this case by checking if there are >reinstall_threshold package missing
        IMA signatures.
 
-       --ima-cert
+       --ima_cert
        With the signing IMA cert path specified, it will also try to verify the
        added IMA signature.
 
@@ -53,10 +53,33 @@ abort() {
 	exit 1
 }
 
+get_system_ima_key() {
+	source /etc/os-release
+	local -A name_map=(['Fedora Linux']="fedora" ['Red Hat Enterprise Linux']="redhatimarelease" ['CentOS Stream']='centosimarelease')
+	local version_id
+	key_name=${name_map[$NAME]}
+	version_id=${VERSION_ID/.?/}
+
+	[[ $key_name == fedora ]] && name_suffix=-ima
+	key_path=/etc/keys/ima/${key_name}-${version_id}${name_suffix}.der
+	if [[ ! -e $key_path ]]; then
+		echo "Failed to get system IMA code verification key"
+		exit 1
+	fi
+
+	echo -n "$key_path"
+}
+
 # Add IMA signatures from RPM database
 add_from_rpm_db() {
 	if ! command -v setfattr &>/dev/null; then
 		abort "Please install attr"
+	fi
+
+	if [[ -e "$ima_cert" ]]; then
+		verify_ima_cert=$ima_cert
+	else
+		verify_ima_cert=$(get_system_ima_key)
 	fi
 
 	# use "|" as deliminator since it won't be used in a filename or signature
@@ -72,16 +95,22 @@ add_from_rpm_db() {
 			continue
 		fi
 
+		# Skip some files that are created on the fly
+		if [[ $path == "/usr/share/mime/"* || $path == "/etc/pki/ca-trust/extracted/"* ]]; then
+			continue
+		fi
+
 		if ! setfattr -n security.ima "$path" -v "0x$sig"; then
 			echo "Failed to add IMA sig for $path"
 		fi
 
-		[[ -e "$ima_cert" ]] || continue
-		# TODO
-		# don't verify the modified files like /etc?
-		if ! evmctl ima_verify -k "$ima_cert" "$path" &>/dev/null; then
-			echo "Failed to verify $path"
+		if ! evmctl ima_verify -k "$verify_ima_cert" "$path" &>/dev/null; then
+			setfattr -x security.ima "$path"
+			# When ima_cert is set, shows the verfication result for users
+			[[ -e "$ima_cert" ]] && "Failed to verify $path"
+			continue
 		fi
+
 	done < <(rpm -q --queryformat "[%{FILENAMES}|%{FILESIGNATURES}\n]" "$package")
 }
 
@@ -103,7 +132,7 @@ if [[ -z $reinstall_threshold ]]; then
 	fi
 fi
 
-unsigned_packages_in_rpm_db=$(rpm -q --queryformat "%{SIGPGP:pgpsig}\n" "$package" | grep "^(none)$" | wc -l)
+unsigned_packages_in_rpm_db=$(rpm -q --queryformat "%{SIGPGP:pgpsig}\n" "$package" | grep -c "^(none)$")
 
 if [[ $unsigned_packages_in_rpm_db -ge $reinstall_threshold ]]; then
 	add_by_reinstall

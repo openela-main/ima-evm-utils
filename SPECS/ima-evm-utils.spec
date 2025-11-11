@@ -3,12 +3,12 @@
 %global bootstrap 0
 
 %if 0%{bootstrap}
-%global compat_soversion 3
+%global compat_soversion 4
 %endif
 
 Name:    ima-evm-utils
-Version: 1.5
-Release: 3%{?dist}
+Version: 1.6.2
+Release: 2%{?dist}
 Summary: IMA/EVM support utilities
 License: GPLv2
 Url:     http://linux-ima.sourceforge.net/
@@ -27,7 +27,7 @@ Source301: centosimarelease-9.der
 
 %if 0%{bootstrap}
 # compat source and patches
-Source10: ima-evm-utils-1.4.tar.gz
+Source10: ima-evm-utils-1.5.tar.gz
 %endif
 
 BuildRequires: asciidoc
@@ -123,7 +123,7 @@ install -m 644 %{SOURCE300} %{SOURCE301} $RPM_BUILD_ROOT/etc/keys/ima/
 %{_bindir}/ima-setup
 
 # if you need to bump the soname version, coordinate with dependent packages
-%{_libdir}/libimaevm.so.4*
+%{_libdir}/libimaevm.so.5*
 %if 0%{bootstrap}
 %{_libdir}/libimaevm.so.%{compat_soversion}
 %{_libdir}/libimaevm.so.%{compat_soversion}.0.0
@@ -138,6 +138,14 @@ install -m 644 %{SOURCE300} %{SOURCE301} $RPM_BUILD_ROOT/etc/keys/ima/
 %{_libdir}/libimaevm.so
 
 %changelog
+* Thu Jul 31 2025 Coiby Xu <coxu@redhat.com> - 1.6.2-2
+- Verify IMA signature to make sure it's correct (RHEL-105471)
+- Drop old libimaevm.so.4 (RHEL-82797)
+
+* Mon Mar 10 2025 Coiby Xu <coxu@redhat.com> - 1.6.2-1
+- ima-setup: run zipl after building initramfs for s390x (RHEL-72293)
+- update to upstream 1.6.2 (RHEL-82793)
+
 * Wed Nov 13 2024 Coiby Xu <coxu@redhat.com> - 1.5-3
 - Skip unsupported file systems for sample appraisal rule (RHEL-62817)
 
