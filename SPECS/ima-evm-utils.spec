@@ -8,7 +8,7 @@
 
 Name:    ima-evm-utils
 Version: 1.6.2
-Release: 3%{?dist}
+Release: 4%{?dist}
 Summary: IMA/EVM support utilities
 License: GPLv2
 Url:     http://linux-ima.sourceforge.net/
@@ -138,6 +138,11 @@ install -m 644 %{SOURCE300} %{SOURCE301} $RPM_BUILD_ROOT/etc/keys/ima/
 %{_libdir}/libimaevm.so
 
 %changelog
+* Thu Oct 30 2025 Coiby Xu <coxu@redhat.com> - 1.6.2-4
+- ima-setup: Use RSAHEADER to tell if a package has been signed
+- ima-setup: skip installing rpm-plugin-ima if it has been installed (RHEL-99356)
+- ima-setup: rebuild all initramfs images to include the integrity dracut module (RHEL-92638)
+
 * Thu Jul 31 2025 Coiby Xu <coxu@redhat.com> - 1.6.2-3
 - Verify IMA signature to make sure it's correct
 

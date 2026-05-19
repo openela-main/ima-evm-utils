@@ -50,10 +50,12 @@ if [[ $# -eq 0 ]]; then
 	usage
 fi
 
-echo "Installing prerequisite package rpm-plugin-ima"
-if ! dnf install rpm-plugin-ima -yq; then
-	echo "Failed to install rpm-plugin-ima, abort"
-	exit 1
+if ! rpm --quiet -q rpm-plugin-ima; then
+	echo "Installing prerequisite package rpm-plugin-ima"
+	if ! dnf install rpm-plugin-ima -yq; then
+		echo "Failed to install rpm-plugin-ima, abort"
+		exit 1
+	fi
 fi
 
 # Add IMA signatures
@@ -126,15 +128,10 @@ load_ima_keys
 # automatically when there is a system reboot
 if ! lsinitrd --mod | grep -q integrity; then
 	cp --preserve=xattr /usr/share/ima/dracut-98-integrity.conf /etc/dracut.conf.d/98-integrity.conf
-	echo "Rebuilding the initramfs of kernel-$(uname -r) to include the dracut integrity module"
-	dracut -f
-
-	if command -v grubby >/dev/null; then
-		_default_kernel=$(grubby --default-kernel | sed -En "s/.*vmlinuz-(.*)/\1/p")
-		if [[ $_default_kernel != $(uname -r) ]]; then
-			echo "Current kernel is not the default kernel ($_default_kernel), include dracut integrity for it as well"
-			dracut -f --kver "$_default_kernel"
-		fi
+	echo "Regenerating all initramfs images to include the dracut integrity module"
+	if ! dracut -f --regenerate-all; then
+		echo "Failed to Regenerate all initramfs images"
+		exit 1
 	fi
 	[[ $(uname -m) == s390x ]] && zipl &> /dev/null
 fi
