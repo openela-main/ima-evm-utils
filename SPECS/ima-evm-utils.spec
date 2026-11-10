@@ -8,7 +8,7 @@
 
 Name:    ima-evm-utils
 Version: 1.6.2
-Release: 4%{?dist}
+Release: 6%{?dist}
 Summary: IMA/EVM support utilities
 License: GPLv2
 Url:     http://linux-ima.sourceforge.net/
@@ -70,13 +70,13 @@ popd
 
 %build
 autoreconf -vif
-%configure --disable-static --disable-engine
+%configure --disable-static --disable-engine --disable-debug
 %make_build
 
 %if 0%{bootstrap}
 pushd compat/
 autoreconf -vif
-%configure --disable-static --disable-engine
+%configure --disable-static --disable-engine --disable-debug
 %make_build
 popd
 %endif
@@ -138,6 +138,12 @@ install -m 644 %{SOURCE300} %{SOURCE301} $RPM_BUILD_ROOT/etc/keys/ima/
 %{_libdir}/libimaevm.so
 
 %changelog
+* Mon Jul 06 2026 Bruno Meneguele <bmeneg@redhat.com> - 1.6.2-6
+- ima-setup: improve script input handling (RHEL-173581)
+
+* Tue Mar 10 2026 Coiby Xu <coxu@redhat.com> - 1.6.2-5
+- Don't allow files in tmpfs to be executed
+
 * Thu Oct 30 2025 Coiby Xu <coxu@redhat.com> - 1.6.2-4
 - ima-setup: Use RSAHEADER to tell if a package has been signed
 - ima-setup: skip installing rpm-plugin-ima if it has been installed (RHEL-99356)
