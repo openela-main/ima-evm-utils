@@ -12,16 +12,14 @@ usage: $0 [--package=PACKAGE_NAME|ALL] [--ima_cert=IMA_CERT_PATH] [--reinstall_t
        specicifed package.
 
        --reinstall_threshold
-       When there are >reinstall_threshold (=20 by default) packages in the RPM
-       DB missing IMA signatures, reinstalling the packages to add IMA
-       signatures to the packages.  By default, IMA sigatures will be obtained
-       from the RPM DB. However the RPM DB may not have the signatures. Dectect
-       this case by checking if there are >reinstall_threshold package missing
-       IMA signatures.
+       By default, IMA sigatures will be obtained from the RPM DB, however the
+       RPM DB may not have them. Dectect this case by checking if there are
+       >reinstall_threshold (=20 by default) package missing IMA signatures
+       and reinstall them.
 
        --ima_cert
-       With the signing IMA cert path specified, it will also try to verify the
-       added IMA signature.
+       With the signing IMA cert path specified, it will try to verify the added
+       IMA signature with the provided cert. Otherwise, system's cert is used.
 
 EOF
 	exit 1

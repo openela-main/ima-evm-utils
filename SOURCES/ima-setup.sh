@@ -13,16 +13,12 @@ usage: $0 --policy=IMA_POLICY_PATH [--reinstall_threshold=NUM]
        --policy
        The path of IMA policy to be loaded. Sample polices are inside
        /usr/share/ima/policies or you can use your own IMA policy
-       The path of IMA policy to be loaded.  Sample polices are inside
-       /usr/share/ima/policies or you can use your own IMA policy
 
        --reinstall_threshold
-       When there are >reinstall_threshold packages in the RPM DB missing IMA
-       signatures, reinstalling the packages to add IMA signatures to the
-       packages.  By default, IMA sigatures will be obtained from the RPM DB.
-       However the RPM DB may not have the signatures. Dectect this case by
-       checking if there are >reinstall_threshold package missing IMA
-       signatures.
+       By default, IMA sigatures will be obtained from the RPM DB. However the
+       RPM DB may not have the signatures. Dectect this case by checking if
+       there are >reinstall_threshold package missing IMA signatures and
+       reinstall them.
 
 EOF
 	exit 1
@@ -32,7 +28,7 @@ for _opt in "$@"; do
 	case "$_opt" in
 	--policy=*)
 		ima_policy_path=${_opt#*=}
-		if [[ ! -e $ima_policy_path ]]; then
+		if [[ ! -r $ima_policy_path ]]; then
 			echo "$ima_policy_path doesn't exist"
 			exit 1
 		fi
@@ -48,6 +44,14 @@ done
 
 if [[ $# -eq 0 ]]; then
 	usage
+fi
+
+# Check for required argument
+if [[ "$ima_policy_path" == "" ]]; then
+	echo "No policy file was given"
+	echo
+	usage
+	exit 1
 fi
 
 echo "Installing prerequisite package rpm-plugin-ima"
@@ -101,10 +105,6 @@ load_ima_policy() {
 
 	ima_policy_path=$1
 
-	if ! test -f "$ima_policy_path"; then
-		echo "$ima_policy_path doesn't exist"
-		return 1
-	fi
 	if ! echo "$ima_policy_path" >"$IMA_POLICY_SYSFS"; then
 		echo "$ima_policy_path can't be loaded"
 		return 1
@@ -113,7 +113,7 @@ load_ima_policy() {
 	# policy containing rules like "appraise obj_type=ifconfig_exec_t" can be
 	# loaded
 	[[ -e /etc/ima ]] || mkdir -p /etc/ima/
-	if ! cp --preserve=xattr "$ima_policy_path" "$IMA_SYSTEMD_POLICY"; then
+	if ! cp --preserve=all "$ima_policy_path" "$IMA_SYSTEMD_POLICY"; then
 		echo "Failed to copy $ima_policy_path to $IMA_SYSTEMD_POLICY"
 		return 1
 	fi
@@ -125,7 +125,7 @@ load_ima_keys
 # Include the dracut integrity module to load the IMA keys and policy
 # automatically when there is a system reboot
 if ! lsinitrd --mod | grep -q integrity; then
-	cp --preserve=xattr /usr/share/ima/dracut-98-integrity.conf /etc/dracut.conf.d/98-integrity.conf
+	cp --preserve=all /usr/share/ima/dracut-98-integrity.conf /etc/dracut.conf.d/98-integrity.conf
 	echo "Rebuilding the initramfs of kernel-$(uname -r) to include the dracut integrity module"
 	dracut -f
 
